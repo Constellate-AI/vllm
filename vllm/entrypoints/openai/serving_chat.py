@@ -149,7 +149,6 @@ class OpenAIServingChat(OpenAIServing):
                     add_generation_prompt=request.add_generation_prompt,
                     tools=tool_dicts,
                     chat_template='tool_use'
-                    chat_template='tool_use'
             )
         except Exception as e:
             logger.error("Error in applying chat template from request: %s", e)
