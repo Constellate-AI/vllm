@@ -55,7 +55,7 @@ messages = [{
     "role":
     "user",
     "content":
-    "Can you tell me what the temperate will be in Dallas and San Francisco, in fahrenheit?"
+    "Can you tell me what the temperate will be in Dallas  in fahrenheit?"
 }]
 
 chat_completion = client.chat.completions.create(messages=messages,

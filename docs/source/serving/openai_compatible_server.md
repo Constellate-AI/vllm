@@ -129,14 +129,11 @@ _This feature is in **beta**. It has limited model support, is not guaranteed to
 well-defined failure modes._ As such, it must be explicitly enabled when desired.
 
 To enable this feature, you must set the following flags:
-* `--enable-api-tools` -- **mandatory** for Auto tool choice. tells vLLM that you want to enable tool templating and extraction.
 * `--enable-auto-toolchoice` -- **mandatory** Auto tool choice. tells vLLM that you want to enable the model to generate its' own tool scalls when it 
 deems appropriate. 
 * `--chat-template` -- **optional** for auto tool choice. the path to the chat template which handles `tool`-role messages and `assistant`-role messages 
-that contain previously generated tool calls.This argument can be set to `tool_use` if your model has a tool use chat 
-template configured in the `tokenizer_config.json`. In this case, it will be used per the `transformers` specification. More on this [here](https://huggingface.co/docs/transformers/en/chat_templating#why-do-some-models-have-multiple-templates)
-from HuggingFace; and you can find an example of this in a `tokenizer_config.json` [here]()
-* `--tool-parser` -- select the tool parser to use - currently either `hermes` or `mistral`. 
+that contain previously generated tool calls. 
+* `--tool-parser` -- select the tool parser to use - currently either `hermes`, `mistral`, or `llama3.1`. 
 
 If your favorite tool-calling model is not supported, please feel free to contribute a parser & tool use chat template! 
 
@@ -170,3 +167,14 @@ arguments do not contain single quotes.** Escaped double quotes may be handled p
 expect parser issues. 
 
 Recommended flags: `--tool-parser mistral --chat-template examples/tool_chat_template_mistral.jinja`
+
+#### Llama 3.1 Models
+Supported Models:
+* `meta-ai/Meta-Llama-3.1-8B-Instruct`
+* `meta-ai/Meta-Llama-3.1-70B-Instruct`
+* `meta-ai/Meta-Llama-3.1-405B-Instruct`
+
+Note that Llama 3.1 models _do not_ support parallel tool calls. At this time, they will throw a `BadRequestError` 
+if multiple tool call results are passed to them - the Jinja template does not support it. 
+
+Recommended flags: `--tool-parser llama3.1 --chat-template examples/tool_chat_template_llama_3_1.jinja`
