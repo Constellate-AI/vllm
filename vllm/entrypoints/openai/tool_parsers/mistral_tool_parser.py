@@ -104,7 +104,6 @@ class MistralToolParser(ToolParser):
     def __init__(self,
                  tokenizer: Optional[Union[PreTrainedTokenizer,
                                            PreTrainedTokenizerFast,
-                                           PreTrainedTokenizerFast,
                                            AutoTokenizer]] = None):
         super().__init__(tokenizer)
 

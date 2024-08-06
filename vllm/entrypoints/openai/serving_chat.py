@@ -36,7 +36,8 @@ from vllm.utils import random_uuid
 
 from vllm.entrypoints.openai.tool_parsers import (ToolParser,
                                                   MistralToolParser,
-                                                  Hermes2ProToolParser)
+                                                  Hermes2ProToolParser,
+                                                  Llama31ToolParser)
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -87,9 +88,11 @@ class OpenAIServingChat(OpenAIServing):
                 self.tool_parser = MistralToolParser
             elif tool_parser == 'hermes':
                 self.tool_parser = Hermes2ProToolParser
+            elif tool_parser == 'llama3.1':
+                self.tool_parser = Llama31ToolParser
             else:
                 raise TypeError(
-                    'Error: --enable-auto-tool-choice requires --tool-parser')
+                'Error: --enable-auto-tool-choice requires --tool-call-parser')
 
     async def create_chat_completion(
         self,
@@ -142,6 +145,9 @@ class OpenAIServingChat(OpenAIServing):
                 chat_template=request.chat_template or self.chat_template,
                 **(request.chat_template_kwargs or {}),
             )
+
+            logger.info('Created full prompt')
+            logger.info(prompt)
         except Exception as e:
             logger.error("Error in applying chat template from request: %s", e)
             return self.create_error_response(str(e))

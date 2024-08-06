@@ -3,7 +3,7 @@ import re
 from typing import Optional, Union, List, Dict
 
 import partial_json_parser
-from partial_json_parser.core.options import Allow
+from partial_json_parser import Allow
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast, \
     AutoTokenizer
 
@@ -79,7 +79,6 @@ class Hermes2ProToolParser(ToolParser):
 
     def __init__(self,
                  tokenizer: Optional[Union[PreTrainedTokenizer,
-                                           PreTrainedTokenizerFast,
                                            PreTrainedTokenizerFast,
                                            AutoTokenizer]] = None):
         super().__init__(tokenizer)
