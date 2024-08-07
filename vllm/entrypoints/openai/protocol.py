@@ -1,22 +1,44 @@
 # Adapted from
 # https://github.com/lm-sys/FastChat/blob/168ccc29d3f7edc50823016105c024fe2282732a/fastchat/protocol/openai_api_protocol.py
 import time
-from typing import Any, Dict, List, Literal, Optional, Union, Type, final
+from argparse import Namespace
+from typing import Any, Dict, List, Literal, Optional, Union, final
 
 import torch
+# yapf conflicts with isort for this block
+# yapf: disable
+from openai.types.chat import ChatCompletionContentPartParam
+from openai.types.chat import (
+    ChatCompletionContentPartParam as OpenAIChatCompletionContentPartParam)
+from openai.types.chat import (
+    ChatCompletionMessageParam as OpenAIChatCompletionMessageParam)
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from transformers import PreTrainedTokenizer
-from typing_extensions import Annotated, TypedDict, Required
+from typing_extensions import Annotated, Required, TypedDict
 
 from vllm.entrypoints.openai.logits_processors import get_logits_processors
 from vllm.pooling_params import PoolingParams
 from vllm.sampling_params import LogitsProcessor, SamplingParams
 from vllm.utils import random_uuid
-from openai.types.chat import (ChatCompletionContentPartParam,
-                               ChatCompletionMessageParam as
-                               OpenAIChatCompletionMessageParam,
-                               ChatCompletionContentPartParam as
-                               OpenAIChatCompletionContentPartParam)
+
+# yapf: enable
+
+# torch is mocked during docs generation,
+# so we have to provide the values as literals
+_MOCK_LONG_INFO = Namespace(min=-9223372036854775808, max=9223372036854775807)
+
+try:
+    from sphinx.ext.autodoc.mock import _MockModule
+
+    if isinstance(torch, _MockModule):
+        _LONG_INFO = _MOCK_LONG_INFO
+    else:
+        _LONG_INFO = torch.iinfo(torch.long)
+except ModuleNotFoundError:
+    _LONG_INFO = torch.iinfo(torch.long)
+
+assert _LONG_INFO.min == _MOCK_LONG_INFO.min
+assert _LONG_INFO.max == _MOCK_LONG_INFO.max
 
 
 class CustomChatCompletionMessageParam(TypedDict, total=False):
@@ -156,9 +178,7 @@ class ChatCompletionRequest(OpenAIBaseModel):
     n: Optional[int] = 1
     presence_penalty: Optional[float] = 0.0
     response_format: Optional[ResponseFormat] = None
-    seed: Optional[int] = Field(None,
-                                ge=torch.iinfo(torch.long).min,
-                                le=torch.iinfo(torch.long).max)
+    seed: Optional[int] = Field(None, ge=_LONG_INFO.min, le=_LONG_INFO.max)
     stop: Optional[Union[str, List[str]]] = Field(default_factory=list)
     stream: Optional[bool] = False
     stream_options: Optional[StreamOptions] = None
@@ -167,8 +187,9 @@ class ChatCompletionRequest(OpenAIBaseModel):
     tools: Optional[List[ChatCompletionToolsParam]] = None
     tool_choice: Optional[Union[Union[Literal["none"], Literal["auto"]],
                                 ChatCompletionNamedToolChoiceParam]] = "none"
-    parallel_tool_calls: Optional[
-        bool] = False  # NOTE this will be ignored by VLLM as the behavior is determined by the model
+
+    # NOTE this will be ignored by VLLM -- the model determines the behavior
+    parallel_tool_calls: Optional[bool] = False
     user: Optional[str] = None
 
     # doc: begin-chat-completion-sampling-params
@@ -224,8 +245,9 @@ class ChatCompletionRequest(OpenAIBaseModel):
         default=None,
         description=(
             "A Jinja template to use for this conversion. "
-            "If this is not passed, the model's default chat template will be "
-            "used instead."),
+            "As of transformers v4.44, default chat template is no longer "
+            "allowed, so you must provide a chat template if the tokenizer "
+            "does not define one."),
     )
     chat_template_kwargs: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -346,7 +368,8 @@ class ChatCompletionRequest(OpenAIBaseModel):
     @classmethod
     def check_tool_usage(cls, data):
 
-        # if "tool_choice" is not specified but tools are provided, default to "auto" tool_choice
+        # if "tool_choice" is not specified but tools are provided,
+        # default to "auto" tool_choice
         if "tool_choice" not in data and "tools" in data:
             data["tool_choice"] = "auto"
 
@@ -358,38 +381,38 @@ class ChatCompletionRequest(OpenAIBaseModel):
                 raise ValueError(
                     "When using `tool_choice`, `tools` must be set.")
 
-            # make sure that tool choice is either a named tool OR that it's set to "auto"
+            # make sure that tool choice is either a named tool
+            # OR that it's set to "auto"
             if data["tool_choice"] != "auto" and not isinstance(
                     data["tool_choice"], dict):
                 raise ValueError(
-                    "`tool_choice` must either be a named tool or \"auto\". `tool_choice=\"none\" is not supported."
-                )
+                    "`tool_choice` must either be a named tool or \"auto\". "
+                    "`tool_choice=\"none\" is not supported.")
 
-            # ensure that if "tool_choice" is specified as an object, it matches a valid tool
+            # ensure that if "tool_choice" is specified as an object,
+            # it matches a valid tool
             if isinstance(data["tool_choice"], dict):
                 valid_tool = False
                 specified_function = data["tool_choice"]["function"]
                 if not specified_function:
                     return ValueError(
                         'Incorrectly formatted `tool_choice`. Should be like '
-                        +
-                        '`{"type": "function", "function": {"name": "my_function"}}`'
-                    )
+                        '`{"type": "function",'
+                        ' "function": {"name": "my_function"}}`')
                 specified_function_name = specified_function["name"]
                 if not specified_function_name:
                     return ValueError(
                         'Incorrectly formatted `tool_choice`. Should be like '
-                        +
-                        '`{"type": "function", "function": {"name": "my_function"}}`'
-                    )
+                        '`{"type": "function", '
+                        '"function": {"name": "my_function"}}`')
                 for tool in data['tools']:
                     if tool["function"]["name"] == specified_function_name:
                         valid_tool = True
                         break
                 if not valid_tool:
                     return ValueError(
-                        "The tool specified in `tool_choice` does not match any of the specified `tools`"
-                    )
+                        "The tool specified in `tool_choice` does not match any"
+                        " of the specified `tools`")
 
         # TODO validate tools
         return data
@@ -421,9 +444,7 @@ class CompletionRequest(OpenAIBaseModel):
     max_tokens: Optional[int] = 16
     n: int = 1
     presence_penalty: Optional[float] = 0.0
-    seed: Optional[int] = Field(None,
-                                ge=torch.iinfo(torch.long).min,
-                                le=torch.iinfo(torch.long).max)
+    seed: Optional[int] = Field(None, ge=_LONG_INFO.min, le=_LONG_INFO.max)
     stop: Optional[Union[str, List[str]]] = Field(default_factory=list)
     stream: Optional[bool] = False
     stream_options: Optional[StreamOptions] = None
@@ -465,7 +486,7 @@ class CompletionRequest(OpenAIBaseModel):
     )
     guided_json: Optional[Union[str, dict, BaseModel]] = Field(
         default=None,
-        description=("If specified, the output will follow the JSON schema."),
+        description="If specified, the output will follow the JSON schema.",
     )
     guided_regex: Optional[str] = Field(
         default=None,

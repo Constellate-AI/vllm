@@ -1,13 +1,13 @@
 from typing import List, Optional, Union
 
 from vllm.config import ModelConfig
+from vllm.engine.protocol import AsyncEngineClient
+from vllm.entrypoints.chat_utils import (apply_chat_template,
+                                         load_chat_template,
+                                         parse_chat_messages)
+from vllm.entrypoints.logger import RequestLogger
 # yapf conflicts with isort for this block
 # yapf: disable
-from vllm.engine.protocol import AsyncEngineClient
-from vllm.entrypoints.chat_utils import (ConversationMessage,
-                                         load_chat_template,
-                                         parse_chat_message_content)
-from vllm.entrypoints.logger import RequestLogger
 from vllm.entrypoints.openai.protocol import (DetokenizeRequest,
                                               DetokenizeResponse,
                                               ErrorResponse,
@@ -17,7 +17,10 @@ from vllm.entrypoints.openai.protocol import (DetokenizeRequest,
 # yapf: enable
 from vllm.entrypoints.openai.serving_engine import (LoRAModulePath,
                                                     OpenAIServing)
+from vllm.logger import init_logger
 from vllm.utils import random_uuid
+
+logger = init_logger(__name__)
 
 
 class OpenAIServingTokenization(OpenAIServing):
@@ -40,7 +43,11 @@ class OpenAIServingTokenization(OpenAIServing):
                          request_logger=request_logger)
 
         # If this is None we use the tokenizer's default chat template
-        self.chat_template = load_chat_template(chat_template)
+        # the list of commonly-used chat template names for HF named templates
+        hf_chat_templates: List[str] = ['default', 'tool_use']
+        self.chat_template = chat_template \
+            if chat_template in hf_chat_templates \
+            else load_chat_template(chat_template)
 
     async def create_tokenize(
         self,
@@ -62,19 +69,19 @@ class OpenAIServingTokenization(OpenAIServing):
         if isinstance(request, TokenizeChatRequest):
             model_config = self.model_config
 
-            conversation: List[ConversationMessage] = []
+            conversation, mm_futures = parse_chat_messages(
+                request.messages, model_config, tokenizer)
 
-            for message in request.messages:
-                result = parse_chat_message_content(message, model_config,
-                                                    tokenizer)
-                conversation.extend(result.messages)
+            if mm_futures:
+                logger.warning(
+                    "Multi-modal inputs are ignored during tokenization")
 
-            prompt = tokenizer.apply_chat_template(
-                add_generation_prompt=request.add_generation_prompt,
+            prompt = apply_chat_template(
+                tokenizer,
                 conversation=conversation,
-                tokenize=False,
-                chat_template=self.chat_template)
-            assert isinstance(prompt, str)
+                chat_template=self.chat_template,
+                add_generation_prompt=request.add_generation_prompt,
+            )
         else:
             prompt = request.prompt
 
