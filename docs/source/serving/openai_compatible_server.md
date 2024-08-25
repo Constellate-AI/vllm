@@ -168,3 +168,19 @@ when tools are provided, that results in much better reliability when working wi
 
 
 Recommended flags: `--tool-call-parser mistral --chat-template examples/tool_chat_template_mistral_parallel.jinja`
+
+#### Llama 3.1 Models
+Supported models:
+
+* `meta-ai/Meta-Llama-3.1-8B-Instruct`
+* `meta-ai/Meta-Llama-3.1-70B-Instruct`
+* `meta-ai/Meta-Llama-3.1-405B-Instruct`
+
+Note that Llama 3.1 models _do not_ support parallel tool calls. At this time, they will throw a `BadRequestError` 
+if multiple tool call results are passed to them - the Jinja template does not support it. 
+
+Additionally, Llama 3.1 models have multiple different tool calling formats - built-in tools, the XML-style format, 
+and JSON-style format. More on this [here](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1#llama-3.1-instruct).
+Only the JSON format has been implemented so far.
+
+Recommended flags (JSON): `--tool-parser llama31_json --chat-template examples/tool_chat_template_llama31_json.jinja`
