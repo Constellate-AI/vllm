@@ -24,8 +24,8 @@
     {{- "respond to the user in natural language and be as helpful as possible. If you do decide to call a tool, " }}
     {{- "the output of the tool call will be provided to you so that you can use it to help you respond to the user. " }}
     {{- "The user cannot see the output of a tool call, so when you receive it, YOU must use it to answer the user's " }}
-    {{- "question - you must summarize, explain, or otherwise use the information to answer the user's query without " }}
-    {{- "explaining the whole tool call process to the user.\n\n" }}
+    {{- "question - you must summarize, explain, or otherwise use the information to answer the user's query. " }}
+    {{- "DO NOT SAY ANYTHING ABOUT IT BEING A RESPONSE, or talk about tools - just use the information to answer the user.\n\n" }}
 
     {{- 'If you decide to call a tool, respond in the following JSON format: {"name": function name, "parameters": dictionary of argument name and its value}\n' }}
     {{- "Do not use variables. The following tools are provided to you." }}
