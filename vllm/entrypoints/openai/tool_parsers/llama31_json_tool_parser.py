@@ -20,32 +20,25 @@ class Llama31JsonToolParser(ToolParser):
 
     def __init__(self, tokenizer: AnyTokenizer):
         super().__init__(tokenizer)
-        self.current_tool_name_sent: bool = False
         self.prev_tool_call_arr: List[Dict] = []
         self.current_tool_id: int = 1
         self.current_tool_name_sent: bool = False
         self.current_tool_initial_sent: bool = False
         self.streamed_args_for_tool: List[str] = []
 
-        # llama 3.1 somtimes uses <|python_tag|> and sometimes uses plain JSON
+        # llama 3.1 sometimes uses <|python_tag|> and sometimes uses plain JSON
         self.tool_call_start_str = '<|python_tag|>'
 
         self.tool_call_regex = re.compile(
             r'\{(?:[^{}]|\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})*\}',
-            re.DOTALL
-        )
+            re.DOTALL)
 
         if not self.model_tokenizer:
             raise ValueError("The model tokenizer must be passed to the "
                              "ToolParser constructor.")
 
-    def extract_tool_calls(
-            self,
-            model_output: str
-    ) -> ExtractedToolCallInformation:
-
-        print('EXTRACTING TOOL CALL FROM')
-        print(model_output)
+    def extract_tool_calls(self,
+                           model_output: str) -> ExtractedToolCallInformation:
 
         call_text: Optional[str] = None
 
@@ -58,16 +51,13 @@ class Llama31JsonToolParser(ToolParser):
             call_text = model_output
 
         if not call_text:
-            return ExtractedToolCallInformation(
-                tools_called=False,
-                tool_calls=[],
-                content=model_output
-            )
+            return ExtractedToolCallInformation(tools_called=False,
+                                                tool_calls=[],
+                                                content=model_output)
 
         try:
 
             tool_call_text = self.tool_call_regex.findall(call_text)
-            print("FOUND TOOL CALLS:", tool_call_text)
             tool_call = json.loads(tool_call_text[0])
 
             # llama 3.1 does NOT support parallel tool calls
@@ -82,29 +72,21 @@ class Llama31JsonToolParser(ToolParser):
                 raise Exception(
                     "Generated tool call does not have 'parameters'!")
 
-            tool_calls = [ToolCall(
-                type="function",
-                function=FunctionCall(
-                    name=name,
-                    arguments=json.dumps(parameters)
-                )
-            )]
+            tool_calls = [
+                ToolCall(type="function",
+                         function=FunctionCall(
+                             name=name, arguments=json.dumps(parameters)))
+            ]
             content = call_text.replace(tool_call_text[0], "")
-            return ExtractedToolCallInformation(
-                tools_called=True,
-                tool_calls=tool_calls,
-                content=content
-            )
+            return ExtractedToolCallInformation(tools_called=True,
+                                                tool_calls=tool_calls,
+                                                content=content)
 
         except Exception as e:
             logger.error("Error extracting tool call from response: %s", e)
-            return ExtractedToolCallInformation(
-                tools_called=False,
-                tool_calls=[],
-                content=model_output
-            )
-
-
+            return ExtractedToolCallInformation(tools_called=False,
+                                                tool_calls=[],
+                                                content=model_output)
 
     # noop
     def extract_tool_calls_streaming(
