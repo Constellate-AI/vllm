@@ -27,7 +27,8 @@ from vllm.entrypoints.openai.serving_engine import (LoRAModulePath,
                                                     PromptAdapterPath)
 from vllm.entrypoints.openai.tool_parsers import (Hermes2ProToolParser,
                                                   MistralToolParser,
-                                                  ToolParser)
+                                                  ToolParser,
+                                                  Llama31JsonToolParser)
 from vllm.inputs import TokensPrompt
 from vllm.logger import init_logger
 from vllm.multimodal import MultiModalDataDict
@@ -82,6 +83,8 @@ class OpenAIServingChat(OpenAIServing):
                 self.tool_parser = MistralToolParser
             elif tool_parser == "hermes":
                 self.tool_parser = Hermes2ProToolParser
+            elif tool_parser == "llama31_json":
+                self.tool_parser = Llama31JsonToolParser
             else:
                 raise TypeError("Error: --enable-auto-tool-choice requires "
                                 "--tool-call-parser")
@@ -130,6 +133,7 @@ class OpenAIServingChat(OpenAIServing):
                 documents=request.documents,
                 **(request.chat_template_kwargs or {}),
             )
+
         except Exception as e:
             logger.error("Error in applying chat template from request: %s", e)
             return self.create_error_response(str(e))
