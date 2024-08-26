@@ -27,7 +27,8 @@
     {{- "question - you must summarize, explain, or otherwise use the information to answer the user's query. " }}
     {{- "DO NOT SAY ANYTHING ABOUT IT BEING A RESPONSE, or talk about tools - just use the information to answer the user.\n\n" }}
 
-    {{- 'If you decide to call a tool, respond in the following JSON format: {"name": function name, "parameters": dictionary of argument name and its value}\n' }}
+    {{- 'If you decide to call a tool, do not say that you\'re calling a tool - just respond in the following JSON format: {"name": function name, "parameters": dictionary of argument name and its value} ' }}
+    {{- "without saying anything else. Don't tell the user you're calling a tool." }}
     {{- "Do not use variables. The following tools are provided to you." }}
     {%- for tool in tools %}
         {{- tool | tojson(indent=4) }}
